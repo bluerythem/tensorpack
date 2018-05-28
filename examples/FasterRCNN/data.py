@@ -261,6 +261,7 @@ def get_train_dataflow():
 
     imgs = COCODetection.load_many(
         config.BASEDIR, config.TRAIN_DATASET, add_gt=True, add_mask=config.MODE_MASK)
+
     """
     To train on your own data, change this to your loader.
     Produce "imgs" as a list of dict, in the dict the following keys are needed for training:
