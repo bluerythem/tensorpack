@@ -343,6 +343,7 @@ class ResNetFPNModel(DetectionModel):
         image_shape2d = tf.shape(image)[2:]  # h,w
 
         c2345 = resnet_fpn_backbone(image, config.RESNET_NUM_BLOCK)
+        print(c2345[0].shape)
         p23456 = fpn_model('fpn', c2345)
 
         # Multi-Level RPN Proposals
@@ -486,8 +487,10 @@ class PVANetFPNModel(DetectionModel):
 
         image = self.preprocess(image)  # 1CHW
         image_shape2d = tf.shape(image)[2:]  # h,w
-        with slim.arg_scope(pvanet_scope(is_training)):
+        with slim.arg_scope(pvanet_scope(is_training, data_format='NCHW')):
             c2345 = pvanet(image)
+            # import pdb
+            # pdb.set_trace()
         p23456 = fpn_model('fpn', c2345)
 
         # Multi-Level RPN Proposals
@@ -574,14 +577,16 @@ class PVANetFPNModel(DetectionModel):
                 mrcnn_loss = 0.0
 
             wd_cost = regularize_cost(
-                '(?:conv3|conv4|cov5|rpn|fastrcnn|maskrcnn)/.*W',
+                '(?:rpn|fastrcnn|maskrcnn)/.*W',
                 l2_regularizer(1e-4), name='wd_cost')
-
+            wd_cost_backbone = regularize_cost(
+                '(?:conv3_1|conv3_2|conv3_3|conv3_4|conv4_1|conv4_2|conv4_3|conv4_4|cov5_1|conv5_2|conv5_3|conv5_4)/.*weights',
+                l2_regularizer(1e-4), name='wd_cost_backbone')
             total_cost = tf.add_n(rpn_loss_collection + [
                 fastrcnn_label_loss, fastrcnn_box_loss,
-                mrcnn_loss, wd_cost], 'total_cost')
+                mrcnn_loss, wd_cost, wd_cost_backbone], 'total_cost')
 
-            add_moving_summary(total_cost, wd_cost)
+            add_moving_summary(total_cost, wd_cost, wd_cost_backbone)
             return total_cost
         else:
             final_boxes, final_labels = self.fastrcnn_inference(
@@ -602,7 +607,7 @@ def visualize(model_path, nr_visualize=50, output_dir='output'):
     Visualize some intermediate results (proposals, raw predictions) inside the pipeline.
     Does not support FPN.
     """
-    df = get_train_dataflow()   # we don't visualize mask stuff
+    df = get_train_dataflow()  # we don't visualize mask stuff
     df.reset_state()
 
     pred = OfflinePredictor(PredictConfig(
@@ -762,7 +767,7 @@ if __name__ == '__main__':
             callbacks=[
                 PeriodicCallback(
                     ModelSaver(max_to_keep=10, keep_checkpoint_every_n_hours=1),
-                    every_k_epochs=3),
+                    every_k_epochs=20),
                 SessionRunTimeout(60000),  # 1 minute timeout
 
                 # linear warmup
@@ -773,7 +778,7 @@ if __name__ == '__main__':
                 GPUUtilizationTracker(),
                 PeakMemoryTracker(),
                 EstimatedTimeLeft(),
-                SessionRunTimeout(60000),   # 1 minute timeout
+                SessionRunTimeout(60000),  # 1 minute timeout
             ],
             steps_per_epoch=stepnum,
             max_epoch=config.LR_SCHEDULE[-1] * factor // stepnum,

@@ -6,11 +6,11 @@ import numpy as np
 # mode flags ---------------------
 MODE_MASK = True
 MODE_FPN = True
-BACKBONE_PVA = False
+BACKBONE_PVA = True
 # dataset -----------------------
 BASEDIR = '/home/chao/data/coco'
-TRAIN_DATASET = ['train2014', 'val2014']
-VAL_DATASET = 'val2014'   # only support evaluation on single dataset
+TRAIN_DATASET = ['train2014', 'valminusminival2014']
+VAL_DATASET = 'minival2014'   # only support evaluation on single dataset
 NUM_CLASS = 81
 CLASS_NAMES = []  # NUM_CLASS strings. Will be populated later by coco loader
 
@@ -22,7 +22,7 @@ FREEZE_AFFINE = False   # do not train affine parameters inside BN
 # schedule -----------------------
 BASE_LR = 1e-2
 WARMUP = 1000    # in steps
-STEPS_PER_EPOCH = 30
+STEPS_PER_EPOCH = 500
 # LR_SCHEDULE = [120000, 160000, 180000]  # "1x" schedule in detectron
 # LR_SCHEDULE = [150000, 230000, 280000]  # roughly a "1.5x" schedule
 LR_SCHEDULE = [240000, 320000, 360000]    # "2x" schedule in detectron
